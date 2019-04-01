@@ -60,7 +60,6 @@ use std::any::Any;
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::iter;
-use std::ops::Range;
 
 /// Error occurred during swapchain creation.
 #[derive(Clone, Copy, Debug, Fail, PartialEq, Eq)]
@@ -141,11 +140,13 @@ impl Extent2D {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SurfaceCapabilities {
     /// Number of presentable images supported by the adapter for a swapchain
-    /// created from this surface.
+    /// created from this surface. This is a tuple where `image_count.0` is
+    /// the minimum number of presentable images, and `image_count.1` is
+    /// the maximum. Therefore, `image_count` represents an inclusive range. 
     ///
-    /// - `image_count.start` must be at least 1.
-    /// - `image_count.end` must be larger of equal to `image_count.start`.
-    pub image_count: Range<SwapImageIndex>,
+    /// - `image_count.0` must be at least 1.
+    /// - `image_count.1` must be greater than or equal to `image_count.0`.
+    pub image_count: (SwapImageIndex, SwapImageIndex),
 
     /// Current extent of the surface.
     ///
@@ -155,7 +156,7 @@ pub struct SurfaceCapabilities {
     /// Range of supported extents.
     ///
     /// `current_extent` must be inside this range.
-    pub extents: Range<Extent2D>,
+    pub extents: (Extent2D, Extent2D),
 
     /// Maximum number of layers supported for presentable images.
     ///
@@ -313,9 +314,9 @@ impl SwapchainConfig {
         let clamped_extent = match caps.current_extent {
             Some(current) => current,
             None => {
-                let (min_width, max_width) = (caps.extents.start.width, caps.extents.end.width - 1);
+                let (min_width, max_width) = (caps.extents.0.width, caps.extents.1.width);
                 let (min_height, max_height) =
-                    (caps.extents.start.height, caps.extents.end.height - 1);
+                    (caps.extents.0.height, caps.extents.1.height);
 
                 // clamp the default_extent to within the allowed surface sizes
                 let width = min(max_width, max(default_extent.width, min_width));
@@ -338,7 +339,7 @@ impl SwapchainConfig {
             composite_alpha,
             format,
             extent: clamped_extent,
-            image_count: caps.image_count.start,
+            image_count: caps.image_count.0,
             image_layers: 1,
             image_usage: image::Usage::COLOR_ATTACHMENT,
         }

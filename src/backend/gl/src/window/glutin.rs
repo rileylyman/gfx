@@ -142,15 +142,15 @@ impl hal::Surface<B> for Surface {
 
         let caps = hal::SurfaceCapabilities {
             image_count: if self.window.get_pixel_format().double_buffer {
-                2..3
+                (2, 3)
             } else {
-                1..2
+                (1, 2)
             },
             current_extent: Some(extent),
-            extents: extent..hal::window::Extent2D {
-                width: ex.width + 1,
-                height: ex.height + 1,
-            },
+            extents: (extent, hal::window::Extent2D {
+                width: ex.width,
+                height: ex.height,
+            }),
             max_image_layers: 1,
             usage: image::Usage::COLOR_ATTACHMENT | image::Usage::TRANSFER_SRC,
             composite_alpha: CompositeAlpha::OPAQUE, //TODO
